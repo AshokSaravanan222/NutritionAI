@@ -1,10 +1,7 @@
-import React, { useState, useEffect, useRef } from "react";
 import { SafeAreaView, View, StyleSheet } from "react-native";
 import { COLORS, SIZES, FONT } from "../../../constants";
 import { FoodList, CameraButton } from "../../../components";
 import { Stack } from "expo-router";
-import TextTicker from "react-native-text-ticker";
-import Slide from "../../../components/hero/Slide";
 
 const Page = () => {
   return (
@@ -40,12 +37,7 @@ const styles = StyleSheet.create({
     right: 0,
     padding: SIZES.medium,
     backgroundColor: "transparent",
-  },
-  slide4: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  }
 });
 
 export default Page;

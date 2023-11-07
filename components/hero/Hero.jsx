@@ -3,7 +3,6 @@ import {StyleSheet, Text, View, Button } from 'react-native'
 
 import Swiper from 'react-native-swiper'
 import Slide from './Slide'
-import { width } from 'deprecated-react-native-prop-types/DeprecatedImagePropType'
 
 const styles = StyleSheet.create({
   wrapper: {},
