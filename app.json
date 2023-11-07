@@ -5,7 +5,7 @@
       "config": {
         "usesNonExemptEncryption": false
       },
-      "bundleIdentifier": "com.asaravan.readai"
+      "bundleIdentifier": "com.asaravan.nutritionai"
     },
     "splash": {
       "image": "assets/images/splash.png"
@@ -32,7 +32,7 @@
     "owner": "asaravan",
     "android": {
       "package": "com.asaravan.readai",
-      "versionCode": 3
+      "versionCode": 1
     },
     "icon": "assets/images/nutrition_logo.png"
   }
