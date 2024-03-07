@@ -7,8 +7,12 @@ from food_volume_estimation.volume_estimator import VolumeEstimator, DensityData
 from food_volume_estimation.depth_estimation.custom_modules import *
 from food_volume_estimation.food_segmentation.food_segmentator import FoodSegmentator
 from flask import Flask, request, jsonify, make_response, abort
-import base64
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
+logging.debug('This message should go to the log file')
+logging.info('So should this')
+logging.warning('And this, too')
 
 app = Flask(__name__)
 estimator = None
