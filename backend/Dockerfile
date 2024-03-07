@@ -4,7 +4,6 @@ FROM python:3.6.1
 # Update pip, setuptools, and wheel
 RUN pip install --upgrade pip setuptools wheel
 
-
 # Set environment variables for configuration
 ENV INPUT_IMAGES="/path/to/image1 /path/to/image2" \
     DEPTH_MODEL_ARCHITECTURE="/app/models/depth_architecture.json" \
@@ -37,6 +36,9 @@ COPY models/fine_tune_food_videos/monovideo_fine_tune_food_videos.h5 $DEPTH_MODE
 COPY models/segmentation/mask_rcnn_food_segmentation.h5 $SEGMENTATION_WEIGHTS
 COPY food_volume_estimation/volume_estimator.py .
 COPY test_imports.py .
+
+# Create directories for results and plots
+RUN mkdir -p /app/results /app/plots
 
 # Run the test script as part of the Docker build process to ensure everything works
 RUN python test_imports.py

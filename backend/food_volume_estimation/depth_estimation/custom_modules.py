@@ -31,8 +31,8 @@ class AugmentationLayer(Layer):
     def call(self, x):
         def transform():
             # Apply transformations with given probability
-            p = tf.random.uniform([], 0.0, 1.0)
-            x_transformed = tf.cond(tf.math.less(p, self.augment_prob_tensor),
+            p = tf.random_uniform([], 0.0, 1.0)  # Modified line
+            x_transformed = tf.cond(tf.less(p, self.augment_prob_tensor),
                                     lambda: self.__augment_inputs(x),
                                     lambda: x)
             return x_transformed

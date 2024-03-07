@@ -1,0 +1,16 @@
+
+Do both of these from /backend folder!
+
+To build docker container
+docker build -t volume_estimation ./
+
+
+To run docker container
+
+docker run \
+  -v /Users/ashoksaravanan/Coding/NutritionAI/backend/results:/app/results \
+  -v /Users/ashoksaravanan/Coding/NutritionAI/backend/plots:/app/plots \
+  -v /Users/ashoksaravanan/Coding/NutritionAI/backend:/app/data \
+  -e INPUT_IMAGES="/app/data/apple.jpg" \
+  -e FOOD_TYPE="apple" \
+ volume_estimation
