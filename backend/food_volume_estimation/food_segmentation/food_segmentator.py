@@ -4,6 +4,16 @@ from food_volume_estimation.food_segmentation.mrcnn.config import Config
 from food_volume_estimation.food_segmentation.mrcnn import (
     model as modellib,
     utils)
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.DEBUG, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # Ensures logs are printed to stdout
+    ]
+)
 
 # Using the single-cluster model
 clusters = ['food']
@@ -34,7 +44,7 @@ class FoodSegmentator():
         config = FoodSegConfig()
         self.model = modellib.MaskRCNN(mode='inference', config=config,
                                   model_dir='')
-        print('[*] Loading segmentation model weights', weights_path)
+        logging.info('[*] Loading segmentation model weights' + str(weights_path))
         self.model.load_weights(weights_path, by_name=True)
 
     def infer_masks(self, input_image):
@@ -46,7 +56,6 @@ class FoodSegmentator():
             masks: [m,n,k] array containing each of the K masks detected.
         """
         import cv2
-
         # Load image and infer masks
         if isinstance(input_image, str):
             image = cv2.imread(input_image, cv2.IMREAD_COLOR)

@@ -5,7 +5,7 @@ def encode_image(image_path):
     with open(image_path, "rb") as image_file:
         return base64.b64encode(image_file.read()).decode('utf-8')
 
-def create_payload(image_path, food_type, plate_diameter="0.7"):
+def create_payload(image_path, food_type, plate_diameter=0.7):
     encoded_image = encode_image(image_path)
     payload = {
         "img": encoded_image,

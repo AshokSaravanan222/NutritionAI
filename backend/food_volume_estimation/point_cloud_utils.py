@@ -4,6 +4,16 @@ from scipy.spatial.transform import Rotation
 from scipy.stats import zscore
 from sklearn import linear_model
 import matplotlib.pyplot as plt
+import logging
+import sys
+
+logging.basicConfig(
+    level=logging.DEBUG, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)  # Ensures logs are printed to stdout
+    ]
+)
 
 
 def linear_plane_estimation(points):
@@ -93,11 +103,16 @@ def sor_filter(points, z_max=1, inlier_ratio=0.5):
     """
     # Find max k-neighbor distance to use as distance score
     # where k is determined by the assumed inlier to outlier ratio
+    logging.info('Running SOR filter...')
     kdtree = cKDTree(points)
+    logging.info('KDTree built.')
     k = inlier_ratio * points.shape[0]
+    logging.info('Querying KDTree...')
     distances, _ = kdtree.query(points, k)
+    logging.info('Calculating zscore.')
     z_scores = zscore(np.max(distances, axis=1))
     # Filter out points outside given z-score range
+    logging.info('Filtering points...')
     sor_mask = np.abs(z_scores) < z_max
     inliers = points[sor_mask]
     return inliers, sor_mask

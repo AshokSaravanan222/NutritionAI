@@ -32,6 +32,8 @@ from fuzzywuzzy import fuzz, process
 logging.info("imported fuzzywuzzy")
 import matplotlib.pyplot as plt
 logging.info("imported matplotlib")
+import cv2
+logging.info("imported cv2")
 
 try:
     import tensorflow as tf
@@ -120,7 +122,7 @@ class VolumeEstimator():
         """
         if not arg_init:
             # For usage in jupyter notebook 
-            print('[*] VolumeEstimator not initialized.')
+            logging.info('[*] VolumeEstimator not initialized.')
         else:    
             self.args = self.__parse_args()
 
@@ -143,7 +145,8 @@ class VolumeEstimator():
             self.depth_model = Model(inputs=depth_net.inputs,
                                      outputs=depth_net.outputs,
                                      name='depth_model')
-            print('[*] Loaded depth estimation model.')
+            
+            logging.info('[*] Loaded depth estimation model.')
             # Depth model configuration
             self.min_disp = 1 / self.args.max_depth
             self.max_disp = 1 / self.args.min_depth
@@ -270,13 +273,14 @@ class VolumeEstimator():
         disparity_map = (self.min_disp + (self.max_disp - self.min_disp) 
                          * inverse_depth)
         depth = 1 / disparity_map
+        logging.info("[*] Predicted depth.")
         # Convert depth map to point cloud
         depth_tensor = K.variable(np.expand_dims(depth, 0))
         intrinsics_inv_tensor = K.variable(np.expand_dims(intrinsics_inv, 0))
         point_cloud = K.eval(get_cloud(depth_tensor, intrinsics_inv_tensor))
         point_cloud_flat = np.reshape(
             point_cloud, (point_cloud.shape[1] * point_cloud.shape[2], 3))
-
+        logging.info("[*] Converted depth to pointcloud.")
         # Find ellipse parameterss (cx, cy, a, b, theta) that 
         # describe the plate contour
         ellipse_scale = 2
@@ -287,36 +291,41 @@ class VolumeEstimator():
         ellipse_params_scaled = tuple(
             [x / ellipse_scale for x in ellipse_params[:-1]]
             + [ellipse_params[-1]])
-
         # Scale depth map
         if (any(x != 0 for x in ellipse_params_scaled) and
                 plate_diameter_prior != 0):
-            print('[*] Ellipse parameters:', ellipse_params_scaled)
+            logging.info('[*] Ellipse parameters:' + str(ellipse_params_scaled))
             # Find the scaling factor to match prior 
             # and measured plate diameters
+            logging.info('[*] Scaling depth with plate diameter prior for plate point 1.')
             plate_point_1 = [int(ellipse_params_scaled[2] 
                              * np.sin(ellipse_params_scaled[4]) 
                              + ellipse_params_scaled[1]), 
                              int(ellipse_params_scaled[2] 
                              * np.cos(ellipse_params_scaled[4]) 
                              + ellipse_params_scaled[0])]
+            logging.info('[*] Scaling depth with plate diameter prior for plate point 2.')
             plate_point_2 = [int(-ellipse_params_scaled[2] 
                              * np.sin(ellipse_params_scaled[4]) 
                              + ellipse_params_scaled[1]),
                              int(-ellipse_params_scaled[2] 
                              * np.cos(ellipse_params_scaled[4]) 
                              + ellipse_params_scaled[0])]
+            logging.info('[*] Plate point 1 3d.')
             plate_point_1_3d = point_cloud[0, plate_point_1[0], 
                                            plate_point_1[1], :]
+            logging.info('[*] Plate point 2 3d.')
             plate_point_2_3d = point_cloud[0, plate_point_2[0], 
                                            plate_point_2[1], :]
+            logging.info('[*] Calculating plate diameter.')
             plate_diameter = np.linalg.norm(plate_point_1_3d 
                                             - plate_point_2_3d)
+            logging.info('[*] Scaling depth with plate diameter prior.')
             scaling = plate_diameter_prior / plate_diameter
         else:
             # Use the median ground truth depth scaling when not using
             # the plate contour
-            print('[*] No ellipse found. Scaling with expected median depth.')
+            logging.info('[*] No ellipse found. Scaling with expected median depth.')
             predicted_median_depth = np.median(1 / disparity_map)
             scaling = self.gt_depth_scale / predicted_median_depth
         depth = scaling * depth
@@ -324,14 +333,17 @@ class VolumeEstimator():
         point_cloud_flat = scaling * point_cloud_flat
 
         # Predict segmentation masks
+        logging.info("[*] Predicting segmentation masks.")
         masks_array = self.segmentator.infer_masks(input_image)
-        print('[*] Found {} food object(s) '
+        logging.info('[*] Found {} food object(s) '
               'in image.'.format(masks_array.shape[-1]))
 
         # Iterate over all predicted masks and estimate volumes
+        logging.info("[*] Estimating volumes. Iterating {} times.".format(masks_array.shape[-1]))
         estimated_volumes = []
         for k in range(masks_array.shape[-1]):
             # Apply mask to create object image and depth map
+            logging.info("[*] Applying mask to create object image and depth map.")
             object_mask = cv2.resize(masks_array[:,:,k], 
                                      (self.model_input_shape[1],
                                       self.model_input_shape[0]))
@@ -340,6 +352,7 @@ class VolumeEstimator():
             object_depth = object_mask * depth
             # Get object/non-object points by filtering zero/non-zero 
             # depth pixels
+            logging.info("[*] Getting object/non-object points by filtering zero/non-zero depth pixels.")
             object_mask = (np.reshape(
                 object_depth, (object_depth.shape[0] * object_depth.shape[1]))
                 > 0)
@@ -348,17 +361,21 @@ class VolumeEstimator():
                 np.logical_not(object_mask), :]
 
             # Filter outlier points
+            logging.info("[*] Filtering outlier points.")
             object_points_filtered, sor_mask = sor_filter(
                 object_points, 2, 0.7)
             # Estimate base plane parameters
+            logging.info("[*] Estimating base plane parameters.")
             plane_params = pca_plane_estimation(object_points_filtered)
             # Transform object to match z-axis with plane normal
+            logging.info("[*] Transforming object to match z-axis with plane normal.")
             translation, rotation_matrix = align_plane_with_axis(
                 plane_params, np.array([0, 0, 1]))
             object_points_transformed = np.dot(
                 object_points_filtered + translation, rotation_matrix.T)
 
             # Adjust object on base plane
+            logging.info("[*] Adjusting object on base plane.")
             height_sorted_indices = np.argsort(object_points_transformed[:,2])
             adjustment_index = height_sorted_indices[
                 int(object_points_transformed.shape[0] * self.relax_param)]
@@ -458,6 +475,7 @@ class VolumeEstimator():
                      plane_points_transformed_df, simplices))
             else:
                 # Estimate volume for points above the plane
+                logging.info("[*] Estimating volume for points above the plane.")
                 volume_points = object_points_transformed[
                     object_points_transformed[:,2] > 0]
                 estimated_volume, _ = pc_to_volume(volume_points)
